@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Analítico - Humanidades Digitais</title>
+    
+    <!-- Tailwind CSS para um design clássico e limpo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PapaParse para ler o CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    
+    <!-- Chart.js para os gráficos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <style>
+        /* Tipografia clássica e cores de fundo suaves */
+        body { 
+            background-color: #f8fafc; 
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #334155;
+        }
+        /* Estilo das cartas (cards) para um look profissional */
+        .card { 
+            background-color: #ffffff; 
+            border-radius: 0.5rem; 
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); 
+            border: 1px solid #e2e8f0; 
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        
+        <!-- Cabeçalho -->
+        <header class="mb-8 border-b border-slate-200 pb-5">
+            <h1 class="text-3xl font-bold text-slate-800">Humanidades Digitais</h1>
+            <p class="text-slate-500 mt-2 text-sm md:text-base">Dashboard analítico de publicações e repositórios. Faça upload do ficheiro de dados para começar.</p>
+        </header>
+
+        <!-- Zona de Upload -->
+        <div id="upload-zone" class="card p-8 text-center border-dashed border-2 border-slate-300 hover:border-blue-500 transition-colors mb-8">
+            <svg class="mx-auto h-12 w-12 text-slate-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <h3 class="text-lg font-medium text-slate-700">Carregar ficheiro CSV</h3>
+            <p class="mt-1 text-sm text-slate-500 mb-4">Selecione o seu ficheiro <span class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">humanidades_digitais_def.csv</span></p>
+            <input type="file" id="csv-file" accept=".csv" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer mx-auto max-w-xs"/>
+            <div id="loading-msg" class="hidden mt-4 text-blue-600 font-medium">A processar dados...</div>
+        </div>
+
+        <!-- Dashboard (Oculto até os dados serem carregados) -->
+        <div id="dashboard" class="hidden">
+            
+            <!-- KPIs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- KPI 1 -->
+                <div class="card p-6 flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Documentos</p>
+                        <p class="text-2xl font-bold text-slate-800" id="kpi-docs">0</p>
+                    </div>
+                </div>
+                <!-- KPI 2 -->
+                <div class="card p-6 flex items-center">
+                    <div class="p-3 rounded-full bg-emerald-100 text-emerald-600 mr-4">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Instituições</p>
+                        <p class="text-2xl font-bold text-slate-800" id="kpi-inst">0</p>
+                    </div>
+                </div>
+                <!-- KPI 3 -->
+                <div class="card p-6 flex items-center">
+                    <div class="p-3 rounded-full bg-amber-100 text-amber-600 mr-4">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">PDFs Obtidos</p>
+                        <p class="text-2xl font-bold text-slate-800" id="kpi-pdf">0</p>
+                    </div>
+                </div>
+                <!-- KPI 4 -->
+                <div class="card p-6 flex items-center">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Idiomas Únicos</p>
+                        <p class="text-2xl font-bold text-slate-800" id="kpi-lang">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Gráfico 1: Linha -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-semibold text-slate-700 mb-4">Evolução de Publicações por Ano</h2>
+                    <div class="chart-container">
+                        <canvas id="chartYear"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gráfico 2: Donut -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-semibold text-slate-700 mb-4">Tipologia de Documento</h2>
+                    <div class="chart-container">
+                        <canvas id="chartType"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gráfico 3: Barras Horizontais -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-semibold text-slate-700 mb-4">Top 10 Instituições de Origem</h2>
+                    <div class="chart-container">
+                        <canvas id="chartInst"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gráfico 4: Tarte -->
+                <div class="card p-6">
+                    <h2 class="text-lg font-semibold text-slate-700 mb-4">Distribuição por Idioma</h2>
+                    <div class="chart-container">
+                        <canvas id="chartLang"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // Lógica de Processamento de Ficheiros
+        document.getElementById('csv-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('loading-msg').classList.remove('hidden');
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                delimiter: ';', // Conforme especificado no Python (sep=';')
+                complete: function(results) {
+                    processData(results.data);
+                    document.getElementById('loading-msg').classList.add('hidden');
+                    document.getElementById('upload-zone').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                }
+            });
+        });
+
+        // Função de Limpeza de Idioma (Espelho da função Python)
+        function limparIdioma(langOriginal) {
+            if (!langOriginal) return 'Não Identificado';
+            let lang = String(langOriginal).trim().substring(0, 3).toUpperCase();
+            if (lang === '') return 'Não Identificado';
+            
+            if (['POR', 'PT'].includes(lang)) return 'PT';
+            if (['ENG', 'EN'].includes(lang)) return 'EN';
+            if (['SPA', 'ES'].includes(lang)) return 'ES';
+            if (['FRA', 'FR'].includes(lang)) return 'FR';
+            
+            return lang; // Retorna a sigla de 3 letras para os restantes (equivalente à lógica final do script)
+        }
+
+        // Variáveis globais para armazenar instâncias dos gráficos
+        let chartInstances = {};
+
+        function processData(data) {
+            let totalDocs = 0;
+            let instSet = new Set();
+            let langSet = new Set();
+            let pdfCount = 0;
+
+            // Agregadores
+            let yearCounts = {};
+            let typeCounts = {};
+            let instCounts = {};
+            let langCounts = {};
+
+            data.forEach(row => {
+                // 1. Remover linhas sem título e identificador (dropna subset=['title', 'identifier'])
+                if (!row.title && !row.identifier) return;
+                
+                totalDocs++;
+
+                // 2. Processar Ano
+                let rawYear = row.year || row.result_year || "";
+                let yearMatch = String(rawYear).match(/(^\d{4}$)/);
+                let ano_limpo = yearMatch ? yearMatch[1] : null;
+
+                // 3. Processar Tipologia
+                let tipo_limpo = row.document_type_normalized || row.document_type || 'Desconhecido';
+
+                // 4. Processar Instituição
+                let inst_limpa = row.institution_normalized || row.origin_repository || 'Desconhecida';
+
+                // 5. Processar Idioma
+                let idioma_limpo = limparIdioma(row.language);
+
+                // 6. Processar PDFs descarregados
+                let pdf_ok = (String(row.pdf_downloaded).toLowerCase() === 'true');
+
+                // Atualizar Sets e Contadores KPIs
+                instSet.add(inst_limpa);
+                langSet.add(idioma_limpo);
+                if (pdf_ok) pdfCount++;
+
+                // Atualizar Agregadores para os Gráficos
+                if (ano_limpo) {
+                    yearCounts[ano_limpo] = (yearCounts[ano_limpo] || 0) + 1;
+                }
+                typeCounts[tipo_limpo] = (typeCounts[tipo_limpo] || 0) + 1;
+                instCounts[inst_limpa] = (instCounts[inst_limpa] || 0) + 1;
+                langCounts[idioma_limpo] = (langCounts[idioma_limpo] || 0) + 1;
+            });
+
+            // Atualizar DOM KPIs
+            document.getElementById('kpi-docs').innerText = totalDocs.toLocaleString('pt-PT');
+            document.getElementById('kpi-inst').innerText = instSet.size.toLocaleString('pt-PT');
+            document.getElementById('kpi-pdf').innerText = pdfCount.toLocaleString('pt-PT');
+            document.getElementById('kpi-lang').innerText = langSet.size.toLocaleString('pt-PT');
+
+            prepareChartDataAndDraw(yearCounts, typeCounts, instCounts, langCounts);
+        }
+
+        function prepareChartDataAndDraw(yearCounts, typeCounts, instCounts, langCounts) {
+            // Preparar Anos (Ordenado por ano crescente)
+            let sortedYears = Object.entries(yearCounts).sort((a, b) => a[0].localeCompare(b[0]));
+
+            // Preparar Tipologia (Top 5 + Outros)
+            let sortedTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+            let topTypes = sortedTypes.slice(0, 5);
+            let otherTypesCount = sortedTypes.slice(5).reduce((sum, item) => sum + item[1], 0);
+            if (otherTypesCount > 0) topTypes.push(['Outros', otherTypesCount]);
+
+            // Preparar Instituições (Top 10, ordenado descendente)
+            let topInst = Object.entries(instCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            // Inverter para o Chart.js desenhar a barra maior no topo
+            topInst.reverse(); 
+
+            // Preparar Idiomas
+            let sortedLangs = Object.entries(langCounts).sort((a, b) => b[1] - a[1]);
+
+            drawCharts(sortedYears, topTypes, topInst, sortedLangs);
+        }
+
+        function drawCharts(years, types, insts, langs) {
+            // Destruir gráficos anteriores se existirem (para permitir re-uploads limpos)
+            Object.values(chartInstances).forEach(chart => chart.destroy());
+
+            // Cores base extraídas do Plotly no script Python
+            const corAzul = '#3b82f6';
+            const corVerde = '#10b981';
+            const paletaCores = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b', '#06b6d4', '#ec4899'];
+
+            // 1. Gráfico Linha: Ano
+            chartInstances.year = new Chart(document.getElementById('chartYear'), {
+                type: 'line',
+                data: {
+                    labels: years.map(d => d[0]),
+                    datasets: [{
+                        label: 'Publicações',
+                        data: years.map(d => d[1]),
+                        borderColor: corAzul,
+                        backgroundColor: corAzul,
+                        tension: 0.2, // Suaviza ligeiramente a linha
+                        pointRadius: 4,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // 2. Gráfico Donut: Tipologia
+            chartInstances.type = new Chart(document.getElementById('chartType'), {
+                type: 'doughnut',
+                data: {
+                    labels: types.map(d => d[0]),
+                    datasets: [{
+                        data: types.map(d => d[1]),
+                        backgroundColor: paletaCores,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%', // Tamanho do buraco interior
+                    plugins: { legend: { position: 'right' } }
+                }
+            });
+
+            // 3. Gráfico Barras: Instituições
+            chartInstances.inst = new Chart(document.getElementById('chartInst'), {
+                type: 'bar',
+                data: {
+                    labels: insts.map(d => d[0]),
+                    datasets: [{
+                        label: 'Documentos',
+                        data: insts.map(d => d[1]),
+                        backgroundColor: corVerde,
+                        borderRadius: 4 // Borda ligeiramente arredondada para elegância
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Faz o gráfico ser horizontal
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+
+            // 4. Gráfico Tarte: Idiomas
+            chartInstances.lang = new Chart(document.getElementById('chartLang'), {
+                type: 'pie',
+                data: {
+                    labels: langs.map(d => d[0]),
+                    datasets: [{
+                        data: langs.map(d => d[1]),
+                        backgroundColor: paletaCores,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right' } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
